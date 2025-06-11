@@ -1,0 +1,18 @@
+# 2023-08-12   ferreira.mv
+# beta:
+#   - use 'python' most recent version
+#   - run 'test' suit to check if compatible
+#   - CMD '/bin/bash' for troubleshootin
+#
+
+FROM python:3.11.4-alpine3.18
+
+COPY dist/subnetcalc-*.tar.gz /tmp/
+
+RUN pip3 install /tmp/subnetcalc*.tar.gz
+RUN apk add bash
+
+ENV PS1="\u@\h:\w\n\$ "
+
+ENTRYPOINT [ "subnetcalc" ]
+CMD [ "-h" ]

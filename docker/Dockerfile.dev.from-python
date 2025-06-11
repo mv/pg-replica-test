@@ -1,0 +1,25 @@
+# 2023-08-12   ferreira.mv
+# beta:
+#   - use 'python' most recent version
+#   - run 'test' suit to check if compatible
+#   - CMD '/bin/bash' for troubleshootin
+#
+
+# Debian
+FROM python:latest
+
+COPY src   /build/src
+COPY bin   /build/bin
+
+COPY requirements.txt      /build/
+COPY requirements-dev.txt  /build/
+COPY Makefile              /build/
+
+WORKDIR /build
+
+RUN make pip pip-dev
+
+ENV PATH=/build/bin:${PATH}
+ENV PS1="\u@\h:\w\n\$ "
+
+CMD [ "/bin/bash" ]

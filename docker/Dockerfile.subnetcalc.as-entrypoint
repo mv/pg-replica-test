@@ -1,0 +1,25 @@
+#
+# 2023-08-12   python:3.11.4-alpine3.18
+# latest:
+#   - use minimal 'python' image
+#   - define ENTRYPOINT to use img as a CLI
+#   - use CMD as an overwritable default for the CLI
+#   - use 'pip' because 'make' is not available in img
+#
+
+FROM python:3.11.4-alpine3.18
+
+COPY src  /build/src
+COPY bin  /build/bin
+
+COPY requirements.txt /build/
+
+WORKDIR /build
+
+RUN pip3 install --upgrade pip && \
+    pip3 install -r requirements.txt
+
+ENV PATH=/build/bin:${PATH}
+
+ENTRYPOINT [ "subnetcalc" ]
+CMD [ "-h" ]

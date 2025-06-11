@@ -1,0 +1,2 @@
+
+CREATE USER tst PASSWORD 'tst' ;
