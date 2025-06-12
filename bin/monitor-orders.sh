@@ -3,6 +3,19 @@
 PRIMARY=5432
 REPLICA=5433
 
+usage() {
+  echo
+  echo "Usage: $0 port"
+  echo
+  echo "  simple monitor for 'tst.orders'."
+  echo
+  exit 1
+}
+
+[ "${1}" == "" ] && usage
+
+_port="${1}"
+
 # first time
 _last_row=0
 
@@ -11,13 +24,13 @@ do
   date '+%F %X.%N'
 
   # get current pointer
-  _next_row=$( psql -U orders -p ${PRIMARY} -c "select max(id) from orders" -P tuples_only )
+  _next_row=$( psql -U orders -p ${_port} -c "select max(id) from orders" -P tuples_only )
 
   # show all rows since _last_row
   echo
   echo "Dataset since last insertion..."
   echo
-  psql -U orders -p ${PRIMARY} -c "select * from orders where id > '${_last_row}'" -P pager=off
+  psql -U orders -p ${_port} -c "select * from orders where id > '${_last_row}'" -P pager=off
 
   # show current amount of rows
   echo
