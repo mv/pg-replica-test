@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS  orders
 , product_name  TEXT
 , quantity      INTEGER
 , order_date    DATE        DEFAULT NOW()
-, md5_hash      VARCHAR(32) DEFAULT MD5(NOW()::TEXT)
-, dt_created    TIMESTAMP   DEFAULT NOW()
+, md5_hash      VARCHAR(32) DEFAULT MD5(NOW()::TEXT)  -- extra
+, dt_created    TIMESTAMP   DEFAULT NOW()             -- extra
 );
 
 COMMENT ON TABLE orders IS 'Test: Replication table';

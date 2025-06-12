@@ -1,5 +1,0 @@
-
-CREATE USER orders PASSWORD 'orders';
-
-CREATE SCHEMA IF NOT EXISTS orders AUTHORIZATION orders;
-
