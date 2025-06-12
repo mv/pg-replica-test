@@ -8,7 +8,7 @@
 FROM alpine:3.22
 
 # alpine env
-RUN apk add bash shadow gosu vim
+RUN  apk add bash shadow gosu vim
 COPY docker/etc.bash-extra.sh  /etc/bash/bash-extra.sh
 COPY docker/etc.vimrc.local    /etc/vim/vimrc.local
 
@@ -16,36 +16,35 @@ COPY docker/etc.vimrc.local    /etc/vim/vimrc.local
 ENV PGDATA="/var/lib/postgresql"
 RUN apk add postgresql17 postgresql17-client
 RUN mkdir -p /run/postgresql && chown postgres:postgres /run/postgresql
-RUN chsh -s /bin/bash postgres
+RUN chsh  -s /bin/bash postgres
 
-# Test: show console output
-# (obs: adds 38.3M to img)  TODO:remove later
-RUN gosu postgres initdb
+# Obs:
+#   initdb will generate a first 'postgresql.conf' and other configs
+RUN gosu postgres initdb --auth=trust -c 'listen_addresses=*' -c 'port=5432'
 
 # ALTER: client connections
-RUN echo "# Dev connections: md5/passwords"         >> /var/lib/postgresql/pg_hba.conf
-RUN echo "# type  db   user src_addr        method" >> /var/lib/postgresql/pg_hba.conf
-RUN echo "host    all  all  192.168.0.0/16  md5"    >> /var/lib/postgresql/pg_hba.conf
-RUN echo "host    all  all  172.16.0.0/12   md5"    >> /var/lib/postgresql/pg_hba.conf
+RUN cat <<EOF >> /var/lib/postgresql/pg_hba.conf
 
-# ALTER: listen all
-RUN echo "listen_addresses = '*'" >> /var/lib/postgresql/postgresql.conf
-RUN gosu postgres pg_ctl start
+# Mv
+include_if_exists /var/lib/postgresql/pg_hba-extras.conf
 
-# wait for db start
-RUN sleep 30
-# ALTER: use password via remote connections
-RUN psql -U postgres -c 'ALTER USER postgres password "pg";'
+EOF
 
-# EXTRA: test user
-RUN psql -U postgres -c 'CREATE USER tst password "tst";'
+RUN cat <<EOF >> /var/lib/postgresql/pg_hba-extras.conf
+# First boot: TRUST: for automation
+# Desired: connections using md5/passwords in all future automations
 
+# type  db   user src:addr/network method
+host    all  all  192.168.0.0/16   trust
+host    all  all  172.16.0.0/12    trust
+
+EOF
 
 EXPOSE 5432
-#VOLUME ["/var/lib/postgresql"]
 
 
-#ENTRYPOINT [ "/usr/bin/gosu","postgres","/bin/bash" ]
-#ENTRYPOINT [ "/bin/sh" ]
+ENTRYPOINT [ "/usr/bin/gosu","postgres","postgres"]
+
 #ENTRYPOINT [ "/bin/bash" ]
-#CMD [ "-h" ]
+#ENTRYPOINT [ "/bin/sh" ]
+
