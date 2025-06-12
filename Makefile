@@ -70,53 +70,109 @@ pip-dev: ## - Pip: install from requirements-dev.txt
 img: ## - Docker images
 	docker images
 
-.PHONY: img-clean
-img-clean: ## - Docker rmi: untagged
-	docker rmi $$(docker images -f "dangling=true" -q) ;\
+.PHONY: clean-docker
+clean-docker: ## - Docker: clean ps+img
+	@make clean-ps
+	@make clean-img
+
+.PHONY: clean-img
+clean-img: ## - Docker rmi: untagged
+	docker rmi $$(docker images -f "dangling=true" -q) && \
+	printf "\nCleaned...\n\n" && \
 	docker images
 
+.PHONY: clean-ps
+clean-ps: ## - Docker rm: ps exited
+	docker ps -a && \
+	docker rm $$( docker ps -a -q -f status=exited ) && \
+	printf "\nCleaned...\n\n" && \
+	docker ps -a
 
-_img := pg-17
+
+_cimg:=pg-17
 _base:=latest
 _primary:=db-primary
 _replica:=db-replica
 
-.PHONY: build-pg-17
-build-pg-17: ## - Docker build: tag=${_tag}
-	export _img=pg-17  ;\
-	export _tag=latest ;\
-	docker build -f docker/Dockerfile.${_img} -t ${_img}:${_base} . && \
-	docker images | egrep --color "${_img} *${_base}" -B5 -A5
+.PHONY: pg-17-build
+pg-17-build: ## - Docker build: container image: $(_cimg):$(_tag)
+#	export _img=pg-17  ;\
+#	export _tag=latest ;\
+
+	docker build -f docker/Dockerfile.$(_cimg) -t $(_cimg):$(_base) . && \
+	docker images | egrep -B5 -A5 --color "$(_cimg) *$(_base)"
 
 
-.PHONY: run-pg-17
-run-pg-17: ## - Docker ...
-	docker run -ti -p 5432:5432 -v .:/work $(_img):${_base} /bin/sh
-
-.PHONY: build-db-primary
-build-db-primary: ## - Docker build: tag=${_tag}
-	docker build -f docker/Dockerfile.$(_primary) -t $(_img):$(_primary) . && \
-	docker images | egrep --color "$(_img) *$(_primary)" -B5 -A5
+.PHONY: pg-17-run
+pg-17-run: ## - Docker run /bin/sh
+	docker run -ti --rm -p 5432:5432 -v .:/work --entrypoint /bin/sh $(_cimg):$(_base)
 
 
-.PHONY: setup-primary
-setup-primary: ## - Docker ...
-	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/user.postgres.sql
-	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/user.tst.sql
-	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/schema.orders.sql
-#	psql -U orders   -h 127.0.0.1 -p 5432 postgres < sql/orders.tab.sql
+################################################################################
+##@ Postgres
 
-.PHONY: setup-replica
-setup-replica: ## - Docker ...
-	psql -U postgres -h 127.0.0.1 -p 5433 postgres < sql/user.postgres.sql
-#	psql -U postgres -h 127.0.0.1 -p 5433 postgres < sql/user.tst.sql
-#	psql -U postgres -h 127.0.0.1 -p 5433 postgres < sql/schema.orders.sql
-#	psql -U orders   -h 127.0.0.1 -p 5433 postgres < sql/orders.tab.sql
+##
+##
+.PHONY: db-primary-run
+db-primary-run: ## - Docker daemon: db-primary
+	docker run -d -p 5432:5432 -v .:/work --name $(_primary) $(_cimg) && \
+	docker ps | egrep  --color "$(_primary)"
 
-.PHONY: run-primary
-run-primary: ## - Docker ...
-	docker run -ti -p 5432:5432 -v .:/work $(_img):$(_base) /bin/sh
 
-.PHONY: run-replica
-run-replica: ## - Docker ...
-	docker run -ti -p 5433:5432 -v .:/work $(_img):$(_base) /bin/sh
+.PHONY: db-primary-start
+db-primary-start: ## - Docker start: db-primary
+	docker start $(_primary)
+	@echo
+	@docker ps -a | egrep -e "NAMES|$(_primary)"
+
+.PHONY: db-primary-stop
+db-primary-stop: ## - Docker stop: db-primary
+	docker stop $(_primary)
+	@echo
+	@docker ps -a | egrep -e "NAMES|$(_primary)"
+
+
+.PHONY: db-primary-setup
+db-primary-setup: ## - Docker ...
+	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/ddl/schema.tst.sql
+	psql -U tst      -h 127.0.0.1 -p 5432 postgres < sql/ddl/orders.tab.sql
+	@make db-primary-check
+
+
+.PHONY: db-primary-check
+db-primary-check: ## - Docker ...
+	psql -U tst      -h 127.0.0.1 -p 5432 postgres -c '\l' -c '\du' -c '\dn' -c '\dt' -c '\d tst.orders'
+
+
+##
+##
+.PHONY: replica-run
+replica-run: ## - Docker daemon: replica
+	docker run -d -p 5433:5432 -v .:/work --name $(_replica) $(_cimg) && \
+	docker ps | egrep  --color "$(_replica)"
+
+
+.PHONY: replica-start
+replica-start: ## - Docker start: replica
+	docker start $(_replica)
+	@echo
+	@docker ps -a | egrep -e "NAMES|$(_replica)"
+
+.PHONY: replica-stop
+replica-stop: ## - Docker stop: replica
+	docker stop $(_replica)
+	@echo
+	@docker ps -a | egrep -e "NAMES|$(_replica)"
+
+
+.PHONY: replica-setup
+replica-setup: ## - Docker ...
+	psql -U postgres -h 127.0.0.1 -p 5433 postgres < sql/ddl/schema.tst.sql
+	psql -U tst      -h 127.0.0.1 -p 5433 postgres < sql/ddl/orders.tab.sql
+	@make replica-check
+
+
+.PHONY: replica-check
+replica-check: ## - Docker ...
+	psql -U tst      -h 127.0.0.1 -p 5433 postgres -c '\l' -c '\du' -c '\dn' -c '\dt' -c '\d tst.orders'
+
