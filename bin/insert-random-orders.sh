@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# MacOS/BSD
+# Source of products
+# from MacOS/BSD
 DICT="data/usr-share-dict-web2a.txt"
-
 _qtd_lines=$( wc -l ${DICT} | awk '{print $1}' | tr -d ' ')
 
 
