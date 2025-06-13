@@ -6,6 +6,16 @@ DICT="data/usr-share-dict-web2a.txt"
 _qtd_lines=$( wc -l ${DICT} | awk '{print $1}' | tr -d ' ')
 
 
+# db-primary
+export PGDATABASE=postgres
+export PGHOST=127.0.0.1
+export PGPORT=5432
+
+export PGUSER=tst
+export PGPASSWORD=tst
+
+
+
 while true
 do
   # Batch: amount of INSERTS

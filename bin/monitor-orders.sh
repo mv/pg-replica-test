@@ -28,12 +28,13 @@ do
 
   # show all rows since _last_row
   echo
-  echo "Dataset since last insertion..."
+  echo "Dataset since last insertion [${_port}]..."
   echo
   psql -U tst -p ${_port} -c "select * from orders where id > '${_last_row}'" -P pager=off
 
   # show current amount of rows
   echo
+  echo "Monitoring port: [${_port}]"
   echo "Current amount of rows: [${_next_row}]"
   echo
 
