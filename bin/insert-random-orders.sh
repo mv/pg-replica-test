@@ -26,7 +26,7 @@ do
 
     printf "$(date '+%F %X') Insert: [%02d] Qty: %2d, Product: ${_prod_name}\n" ${i} ${_prod_qtty}
 
-    psql -U orders -q -c "INSERT INTO orders (product_name,quantity,md5_hash) VALUES ('${_prod_name}','${_prod_qtty}',md5('${_prod_name}'));"
+    psql -U tst -q -c "INSERT INTO tst.orders (product_name,quantity,md5_hash) VALUES ('${_prod_name}','${_prod_qtty}',md5('${_prod_name}'));"
 
   done
 
