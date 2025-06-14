@@ -69,7 +69,8 @@ Insert script creates random batches of rows (in groups of 10) and populates `ts
 Let the script running ad infinitum...
 
 ```
-## Terminal 1: bin/insert-random-orders.sh
+## Terminal 1:
+bin/insert-random-orders.sh
 ```
 
 Output:
