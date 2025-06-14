@@ -33,20 +33,36 @@ Initial diagram:
 
 ### 2. Why using Postgres Log Shipping and not Streaming?
 
-Both solutions are good enough.</br>
+WAL Log Shipping proved to be very simple to setup with minimal configuration, and no need of any network setup.
 
-At configuration level, Log shipping pre-requisite is the presence of a common storage and some minimal parameters in `postgresql.conf`.
+At configuration level `postgresql.conf` of each server must have:
 
-Streaming pre-requisites are:
-  - IP address of the `primary` node (used in the connection string of `postgresql.conf`)
-  - IP address of the `replica` node (used in the `pg_hba.conf`)
-  - a replication `user/password` (used in the `pg_hba.conf`)
-  - configuration of `pg_hba.conf`
-  - parameters in `postgresql.conf`
+```
+# Server: db-primary
+listen_addresses = '*'
+wal_level = replica
+archive_mode = on
+archive_command = 'test ! -f /mnt/archive/%f  &&  /bin/cp %p /mnt/archive/%f'
+
+# Test in Docker
+checkpoint_timeout = 30s # range 30s-1d
+archive_timeout = 2      # force a WAL file switch after this number of seconds; 0 disables
+```
+```
+# Server: db-replicia
+listen_addresses = '*'
+wal_level = replica
+archive_mode = on
+hot_standby = on
+restore_command = 'cp /mnt/archive/%f %p'
+archive_cleanup_command = 'pg_archivecleanup /mnt/archive %r'
+
+# Test in Docker
+archive_timeout = 30
+```
 
 At runtime level, using log shipping adds to a nice effect of realizing the steps taken by `checkpoint > archive > ship > restore`.
 
 The observed delay between servers is not a bug, but a feature that demonstrates how the replication mechanism is keeping the flow of data up-to-date.
-
 
 

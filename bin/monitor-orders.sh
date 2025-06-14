@@ -31,7 +31,7 @@ do
   echo
   echo "Batch of data since last iteration in ${_port}... BEGIN"
   echo
-  psql -U tst -p ${_port} -c "select * from orders where id > '${_last_row}'" -P pager=off
+  psql -U tst -p ${_port} -c "select * from orders where id > '${_last_row:-0}'" -P pager=off
   echo "Batch of data since last iteration in ${_port}... END"
   echo
 

@@ -186,7 +186,26 @@ stop-all: ## - Docker ...
 	docker stop $(_replica)
 	docker ps -a
 
+.PHONY: run-all
+run-all: ## - Pg
+	@make db-primary-run
+	@echo
+	@make db-primary-setup
+	@echo
+	@make replica-run
+	@echo
+	@docker ps -a
+	@echo
+#	@sleep 10
+#	@make force-log-switch
+
+.PHONY: clean-all
+clean-all: ## - Pg
+	@make replica-clean    || true
+	@make db-primary-clean || true
+	@docker ps -a
+
+
 .PHONY: force-log-switch
 force-log-switch: ## - Pg
 	psql -U postgres -p 5432 -c 'SELECT pg_switch_wal();'
-
