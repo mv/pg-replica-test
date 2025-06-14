@@ -35,7 +35,14 @@ Initial diagram:
 
 Both solutions are good enough.</br>
 
-At configuration level, Log shipping pre-requisite is the presence of a common storage. Streaming pre-requisite is the IP address of the `primary` node for the connection string used by `replica`.
+At configuration level, Log shipping pre-requisite is the presence of a common storage and some minimal parameters in `postgresql.conf`.
+
+Streaming pre-requisites are:
+  - IP address of the `primary` node (used in the connection string of `postgresql.conf`)
+  - IP address of the `replica` node (used in the `pg_hba.conf`)
+  - a replication `user/password` (used in the `pg_hba.conf`)
+  - configuration of `pg_hba.conf`
+  - parameters in `postgresql.conf`
 
 At runtime level, using log shipping adds to a nice effect of realizing the steps taken by `checkpoint > archive > ship > restore`.
 
