@@ -41,6 +41,7 @@ img: ## - Docker images
 clean: ## - Docker: clean ps+img
 	@make clean-ps
 	@make clean-img
+	docker rmi pg17
 
 .PHONY: clean-img
 clean-img: ## - Docker rmi: untagged

@@ -39,7 +39,7 @@ As suggestion, using a window with at least 4 terminals available will produce t
 
 What is expected to be seen:
 
-![Full video](docs/output.all.01.720p.gif)
+![Full video](docs/output.all.02.1080p.gif)
 
 ### 1. Initial setup
 
@@ -47,11 +47,15 @@ Build container image using Postgres v17 and start 2 containers:
 
 ```
 ## Terminal 1: Build and start `pg` container
+source .envrc     # export et al
 make build-pg17   # docker build
 make dc-up        # start,setup,run -- via docker compose
 ```
 
 Expected result:
+
+![terminal-1](docs/terminal-1.01.gif)
+
 ```
 $ docker ps -a
 CONTAINER ID   IMAGE     COMMAND                  CREATED        STATUS        PORTS                    NAMES
@@ -100,7 +104,8 @@ Watch for different batches of inserts will increase the total amount of rows in
 
 ```
 ## Terminal 2: monitor `primary` db.
-bin/monitor-orders.sh 5432
+source .envrc                 # export et al
+bin/monitor-orders.sh 5432    # db-primary port
 ```
 
 Output:
@@ -137,7 +142,8 @@ In another new terminal -- for example, terminal 3 -- follow again in real time 
 
 ```
 ## Terminal 3: monitor `replica` db.
-bin/monitor-orders.sh 5433
+source .envrc                 # export et al
+bin/monitor-orders.sh 5433    # db-replica port
 ```
 
 Output:
@@ -173,7 +179,9 @@ Ctrl+C to stop...
 Yet in another extra terminal  -- for example, terminal 4 -- is possible to verify database activity and the rate of log switching.
 
 ```
-make dc-top   # docker compose top
+# Terminal 4: verify database daemon output
+source .envrc   # just in case
+make dc-top     # docker compose top
 ```
 
 Output:
@@ -206,10 +214,10 @@ replica  1   70   75720  75684  0   18:07  ?    00:00:01  postgres: startup wait
  ```
  docker compose down -v
 [+] Running 4/4
- ✔ Container pg-replica-1  Removed                                                                                                      0.5s
- ✔ Container pg-primary-1  Removed                                                                                                      0.4s
- ✔ Volume pg_wal-archive   Removed                                                                                                      0.0s
- ✔ Network pg_db           Removed                                                                                                      0.3s
+ ✔ Container pg-replica-1  Removed     0.5s
+ ✔ Container pg-primary-1  Removed     0.4s
+ ✔ Volume pg_wal-archive   Removed     0.0s
+ ✔ Network pg_db           Removed     0.3s
 
 == Down: all resources destroyed.
 ```
