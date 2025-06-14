@@ -21,21 +21,24 @@ _last_row=0
 
 while true
 do
-  date '+%F %X.%N'
+  _dt=$(date '+%F %X.%N')
+  echo "== Status date: ${_dt:0:23}"  # substr to trim msecs
 
   # get current pointer
-  _next_row=$( psql -U tst -p ${_port} -c "select max(id) from orders" -P tuples_only )
+  _next_row=$( psql -U tst -p ${_port} -c "select max(id) from orders" -P tuples_only | tr -d ' ' )
 
   # show all rows since _last_row
   echo
-  echo "Dataset since last insertion [${_port}]..."
+  echo "Batch of data since last iteration in ${_port}... BEGIN"
   echo
   psql -U tst -p ${_port} -c "select * from orders where id > '${_last_row}'" -P pager=off
-
-  # show current amount of rows
+  echo "Batch of data since last iteration in ${_port}... END"
   echo
-  echo "Monitoring port: [${_port}]"
-  echo "Current amount of rows: [${_next_row}]"
+
+
+  # show total amount of rows
+  echo "== Monitoring port is ${_port}"
+  echo "== Total amount of rows in table: [${_next_row}]"
   echo
 
   # dramatic pause
