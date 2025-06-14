@@ -90,7 +90,7 @@ db-primary-run: ## - Docker daemon: db-primary
 		$(_cimg)
 	docker cp docker/pg-replication-primary.conf $(_primary):/var/lib/postgresql/
 	docker start $(_primary)
-	docker ps | egrep  --color "$(_primary)"
+	@docker ps -a | egrep --color -e "NAMES|$(_primary)"
 
 #		--ip 172.17.0.32 \
 
@@ -98,7 +98,7 @@ db-primary-run: ## - Docker daemon: db-primary
 db-primary-start: ## - Docker start: db-primary
 	docker start $(_primary)
 	@echo
-	@docker ps -a | egrep -e "NAMES|$(_primary)"
+	@docker ps -a | egrep --color -e "NAMES|$(_primary)"
 
 .PHONY: db-primary-stop
 db-primary-stop: ## - Docker stop: db-primary
@@ -143,14 +143,13 @@ replica-run: ## - Docker daemon: replica
 	docker cp docker/pg-replication-replica.conf $(_replica):/var/lib/postgresql/
 	docker cp /dev/null                          $(_replica):/var/lib/postgresql/standby.signal
 	docker start $(_replica)
-	docker ps | egrep  --color "$(_replica)"
 
 
 .PHONY: replica-start
 replica-start: ## - Docker start: replica
 	docker start $(_replica)
 	@echo
-	@docker ps -a | egrep -e "NAMES|$(_replica)"
+	@docker ps -a | egrep --color -e "NAMES|$(_replica)"
 
 .PHONY: replica-stop
 replica-stop: ## - Docker stop: replica
@@ -168,6 +167,7 @@ replica-check: ## - Docker ...
 replica-all: ## - Docker ...
 	@make replica-run
 	@make replica-start
+	bin/check-replica-build.sh
 
 .PHONY: replica-clean
 replica-clean: ## - Docker ...
@@ -178,26 +178,21 @@ replica-clean: ## - Docker ...
 start-all: ## - Docker ...
 	docker start $(_primary)
 	docker start $(_replica)
-	docker ps -a
+#	docker ps -a
 
 .PHONY: stop-all
 stop-all: ## - Docker ...
 	docker stop $(_primary)
 	docker stop $(_replica)
-	docker ps -a
+#	docker ps -a
 
 .PHONY: run-all
 run-all: ## - Pg
-	@make db-primary-run
+	@make db-primary-all
 	@echo
-	@make db-primary-setup
+	@make replica-all
 	@echo
-	@make replica-run
-	@echo
-	@docker ps -a
-	@echo
-#	@sleep 10
-#	@make force-log-switch
+#	docker ps -a
 
 .PHONY: clean-all
 clean-all: ## - Pg
