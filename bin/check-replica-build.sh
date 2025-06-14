@@ -13,7 +13,7 @@ do
   _tst=$?
 
   if [ ${_tst} == 0 ]
-  then printf  "CHECK: $(date '+%F %X')  [Waiting for log switch to reach replica...]\r"
+  then printf  "CHECK: $(date '+%F %X')  [Waiting for log switch to reach replica... (from 30s to 5min)]\r"
   else break
   fi
 
