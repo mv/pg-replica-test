@@ -32,7 +32,7 @@ show:   ## - Show header vars
 
 
 ################################################################################
-##@ Docker
+##@ Docker build/run
 .PHONY: img
 img: ## - Docker images
 	docker images
@@ -76,7 +76,7 @@ run-pg17: ## - Docker run /bin/sh
 
 
 ################################################################################
-##@ Postgres
+##@ Via Docker: Postgres setup/test
 
 ##
 ##
@@ -108,24 +108,24 @@ db-primary-stop: ## - Docker stop: db-primary
 
 
 .PHONY: db-primary-setup
-db-primary-setup: ## - Docker ...
+db-primary-setup: ## - Pg: create schema
 	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/ddl/schema.tst.sql
 	psql -U tst      -h 127.0.0.1 -p 5432 postgres < sql/ddl/orders.tab.sql
 	@make db-primary-check
 
 
 .PHONY: db-primary-check
-db-primary-check: ## - Docker ...
+db-primary-check: ## - Pg: check schema
 	psql -U tst      -h 127.0.0.1 -p 5432 postgres -c '\l' -c '\du' -c '\dn' -c '\dt' -c '\d tst.orders'
 
 
 .PHONY: db-primary-all
-db-primary-all: ## - Docker ...
+db-primary-all: ## - Pg: create/run/setup
 	@make db-primary-run
 	@make db-primary-setup
 
 .PHONY: db-primary-clean
-db-primary-clean: ## - Docker ...
+db-primary-clean: ## - Pg: remove img/ps/volume
 	docker stop $(_primary)
 	docker rm   $(_primary)
 	docker volume rm archive
@@ -134,7 +134,7 @@ db-primary-clean: ## - Docker ...
 ##
 ##
 .PHONY: replica-run
-replica-run: ## - Docker daemon: replica
+replica-run: ## - Pg: create/run/setup
 	docker create \
 		-p 5433:5432 \
 		-v .:/work -v archive:/mnt/archive \
@@ -159,35 +159,35 @@ replica-stop: ## - Docker stop: replica
 
 
 .PHONY: replica-check
-replica-check: ## - Docker ...
+replica-check: ## - Pg: check schema
 	psql -U postgres -h 127.0.0.1 -p 5433 postgres -c '\l' -c '\du' -c '\dn' -c '\dt' -c '\d tst.orders'
 
 
 .PHONY: replica-all
-replica-all: ## - Docker ...
+replica-all: ## - Pg: cerate/run/setup
 	@make replica-run
 	@make replica-start
 	bin/check-replica-build.sh
 
 .PHONY: replica-clean
-replica-clean: ## - Docker ...
+replica-clean: ## - Pg: remove
 	docker stop $(_replica)
 	docker rm   $(_replica)
 
 .PHONY: start-all
-start-all: ## - Docker ...
+start-all: ## - Docker: start primary + replica
 	docker start $(_primary)
 	docker start $(_replica)
 #	docker ps -a
 
 .PHONY: stop-all
-stop-all: ## - Docker ...
+stop-all: ## - Docker: stop primary + replica
 	docker stop $(_primary)
 	docker stop $(_replica)
 #	docker ps -a
 
 .PHONY: run-all
-run-all: ## - Pg
+run-all: ## - Pg: create/run primary + replica
 	@make db-primary-all
 	@echo
 	@make replica-all
@@ -195,7 +195,7 @@ run-all: ## - Pg
 #	docker ps -a
 
 .PHONY: clean-all
-clean-all: ## - Pg
+clean-all: ## - Pg: destroy primary + replica + volume
 	@make replica-clean    || true
 	@make db-primary-clean || true
 	@docker ps -a
@@ -204,3 +204,49 @@ clean-all: ## - Pg
 .PHONY: force-log-switch
 force-log-switch: ## - Pg
 	psql -U postgres -p 5432 -c 'SELECT pg_switch_wal();'
+
+
+################################################################################
+##@ Via Docker compose: up/down
+
+##
+##
+
+.PHONY: disclaimer
+disclaimer: ## via Docker compose: order of tasks DO matter.
+	@echo
+
+.PHONY: dc-up
+dc-up: ## - Docker compose up  : ensures initial schema setup
+#	make build-pg17
+	docker compose up primary -d
+	make db-primary-setup
+	@echo "=="
+	@echo "== UP: Primary: setup done"
+	@echo "=="
+	@echo
+
+	docker compose up replica -d
+	bin/check-replica-build.sh
+	@echo "=="
+	@echo "== UP: Replica: setup done"
+	@echo "=="
+	@echo
+
+	docker ps -a
+	@echo
+	docker compose top
+	@echo
+
+
+.PHONY: dc-down
+dc-down: ## - Docker compose down: ensures volume and WAL files are destroyed
+	docker compose down -v
+	@echo
+	@echo "== Down: all resources destroyed."
+	@echo
+
+
+.PHONY: dc-top
+dc-top: ## - Docker compose top: shortcut
+	@while true; do date ; docker compose top ; sleep 2; echo; done

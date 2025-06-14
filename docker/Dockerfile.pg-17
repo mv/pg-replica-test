@@ -48,6 +48,8 @@ host    all  all  172.16.0.0/12    trust
 
 EOF
 
+RUN chown -R postgres:postgres /var/lib/postgresql/*.conf
+
 # WAL archive destination
 RUN mkdir -p /mnt/archive && chown -R postgres:postgres /mnt/archive
 

@@ -1,0 +1,59 @@
+services:
+
+  primary:
+    image: pg-17
+    ports:
+      - "5432:5432"
+    networks:
+      - db
+    volumes:
+      - .:/work
+      - wal-archive:/mnt/archive
+    configs:
+      - source: db-primary
+        target: /var/lib/postgresql/pg-replication-primary.conf
+#   post_start:
+#     - command: mkdir -p /mnt/archive
+#       user: root
+#     - command: chown -R postgres:postgres /mnt/archive
+#       user: root
+
+
+  replica:
+    image: pg-17
+    ports:
+      - "5433:5432"
+    networks:
+      - db
+    volumes:
+      - .:/work
+      - wal-archive:/mnt/archive
+    configs:
+      - source: db-replica
+        target: /var/lib/postgresql/pg-replication-replica.conf
+      - source: standby-signal
+        target: /var/lib/postgresql/standby.signal
+#   post_start:
+#     - command: mkdir -p /mnt/archive
+#       user: root
+#     - command: chown -R postgres:postgres /mnt/archive
+#       user: root
+    depends_on:
+      - primary
+
+volumes:
+  wal-archive:
+    driver: local
+
+configs:
+  db-primary:
+    file: ./docker/pg-replication-primary.conf
+  db-replica:
+    file: ./docker/pg-replication-replica.conf
+  standby-signal:
+    file: /dev/null
+
+
+
+networks:
+  db: {}
