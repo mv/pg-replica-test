@@ -30,39 +30,6 @@ show:   ## - Show header vars
 #	@echo "  ## Pkg Version    [${_pkg_version}]"
 	@echo
 
-################################################################################
-##@ Virtualenv
-
-.PHONY: clean
-clean:	## - Cleanup: pycache stuff
-	rm -rf .pytest_cache .ipynb_checkpoints
-	rm -rf dist/ build/ *.gz *.zip
-	rm -rf src/*.egg*
-	rm -rf src/*/*.egg*
-
-################################################################################
-.PHONY: venv
-venv:   ## - virtualenv: create
-	virtualenv $(_venv)        && \
-	source $(_venv)/bin/activate   && \
-	echo pip3 install --upgrade pip
-
-.PHONY: venv-clean
-venv-clean: ## - virtualenv: rm
-	/bin/rm -rf $(_venv)
-
-
-################################################################################
-.PHONY: pip
-pip:    ## - Pip: install from requirements.txt
-	pip3 install --upgrade pip && \
-	pip3 install -r requirements.txt
-
-
-.PHONY: pip-dev
-pip-dev: ## - Pip: install from requirements-dev.txt
-	pip3 install -r requirements-dev.txt
-
 
 ################################################################################
 ##@ Docker
@@ -70,8 +37,8 @@ pip-dev: ## - Pip: install from requirements-dev.txt
 img: ## - Docker images
 	docker images
 
-.PHONY: clean-docker
-clean-docker: ## - Docker: clean ps+img
+.PHONY: clean
+clean: ## - Docker: clean ps+img
 	@make clean-ps
 	@make clean-img
 
@@ -94,8 +61,8 @@ _base:=latest
 _primary:=db-primary
 _replica:=db-replica
 
-.PHONY: pg-17-build
-pg-17-build: ## - Docker build: container image: $(_cimg):$(_tag)
+.PHONY: build-pg17
+build-pg17: ## - Docker build: container image: $(_cimg):$(_tag)
 #	export _img=pg-17  ;\
 #	export _tag=latest ;\
 
@@ -103,8 +70,8 @@ pg-17-build: ## - Docker build: container image: $(_cimg):$(_tag)
 	docker images | egrep -B5 -A5 --color "$(_cimg) *$(_base)"
 
 
-.PHONY: pg-17-run
-pg-17-run: ## - Docker run /bin/sh
+.PHONY: run-pg17
+run-pg17: ## - Docker run /bin/sh
 	docker run -ti --rm -p 5432:5432 -v .:/work --entrypoint /bin/sh $(_cimg):$(_base)
 
 
@@ -152,6 +119,18 @@ db-primary-check: ## - Docker ...
 	psql -U tst      -h 127.0.0.1 -p 5432 postgres -c '\l' -c '\du' -c '\dn' -c '\dt' -c '\d tst.orders'
 
 
+.PHONY: db-primary-all
+db-primary-all: ## - Docker ...
+	@make db-primary-run
+	@make db-primary-setup
+
+.PHONY: db-primary-clean
+db-primary-clean: ## - Docker ...
+	docker stop $(_primary)
+	docker rm   $(_primary)
+	docker volume rm archive
+
+
 ##
 ##
 .PHONY: replica-run
@@ -183,4 +162,31 @@ replica-stop: ## - Docker stop: replica
 .PHONY: replica-check
 replica-check: ## - Docker ...
 	psql -U postgres -h 127.0.0.1 -p 5433 postgres -c '\l' -c '\du' -c '\dn' -c '\dt' -c '\d tst.orders'
+
+
+.PHONY: replica-all
+replica-all: ## - Docker ...
+	@make replica-run
+	@make replica-start
+
+.PHONY: replica-clean
+replica-clean: ## - Docker ...
+	docker stop $(_replica)
+	docker rm   $(_replica)
+
+.PHONY: start-all
+start-all: ## - Docker ...
+	docker start $(_primary)
+	docker start $(_replica)
+	docker ps -a
+
+.PHONY: stop-all
+stop-all: ## - Docker ...
+	docker stop $(_primary)
+	docker stop $(_replica)
+	docker ps -a
+
+.PHONY: force-log-switch
+force-log-switch: ## - Pg
+	psql -U postgres -p 5432 -c 'SELECT pg_switch_wal();'
 
