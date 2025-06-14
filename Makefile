@@ -115,9 +115,17 @@ pg-17-run: ## - Docker run /bin/sh
 ##
 .PHONY: db-primary-run
 db-primary-run: ## - Docker daemon: db-primary
-	docker run -d -p 5432:5432 -v .:/work --name $(_primary) $(_cimg) && \
+	docker volume create archive
+	docker create \
+		-p 5432:5432 \
+		-v .:/work -v archive:/mnt/archive \
+		--name $(_primary) --hostname $(_primary) \
+		$(_cimg)
+	docker cp docker/pg-replication-primary.conf $(_primary):/var/lib/postgresql/
+	docker start $(_primary)
 	docker ps | egrep  --color "$(_primary)"
 
+#		--ip 172.17.0.32 \
 
 .PHONY: db-primary-start
 db-primary-start: ## - Docker start: db-primary
@@ -148,7 +156,14 @@ db-primary-check: ## - Docker ...
 ##
 .PHONY: replica-run
 replica-run: ## - Docker daemon: replica
-	docker run -d -p 5433:5432 -v .:/work --name $(_replica) $(_cimg) && \
+	docker create \
+		-p 5433:5432 \
+		-v .:/work -v archive:/mnt/archive \
+		--name $(_replica) --hostname $(_replica) \
+		$(_cimg)
+	docker cp docker/pg-replication-replica.conf $(_replica):/var/lib/postgresql/
+	docker cp /dev/null                          $(_replica):/var/lib/postgresql/standby.signal
+	docker start $(_replica)
 	docker ps | egrep  --color "$(_replica)"
 
 
@@ -165,14 +180,7 @@ replica-stop: ## - Docker stop: replica
 	@docker ps -a | egrep -e "NAMES|$(_replica)"
 
 
-.PHONY: replica-setup
-replica-setup: ## - Docker ...
-	psql -U postgres -h 127.0.0.1 -p 5433 postgres < sql/ddl/schema.tst.sql
-	psql -U tst      -h 127.0.0.1 -p 5433 postgres < sql/ddl/orders.tab.sql
-	@make replica-check
-
-
 .PHONY: replica-check
 replica-check: ## - Docker ...
-	psql -U tst      -h 127.0.0.1 -p 5433 postgres -c '\l' -c '\du' -c '\dn' -c '\dt' -c '\d tst.orders'
+	psql -U postgres -h 127.0.0.1 -p 5433 postgres -c '\l' -c '\du' -c '\dn' -c '\dt' -c '\d tst.orders'
 

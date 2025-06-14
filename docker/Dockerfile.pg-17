@@ -20,17 +20,25 @@ RUN chsh  -s /bin/bash postgres
 
 # Obs:
 #   initdb will generate a first 'postgresql.conf' and other configs
-RUN gosu postgres initdb --auth=trust -c 'listen_addresses=*' -c 'port=5432'
+RUN gosu postgres initdb --auth=trust
+
+RUN cat <<EOF >> /var/lib/postgresql/postgresql.conf
+
+# Mv: Only one of the following will be present in runtime
+include_if_exists '/var/lib/postgresql/pg-replication-primary.conf'
+include_if_exists '/var/lib/postgresql/pg-replication-replica.conf'
+
+EOF
 
 # ALTER: client connections
 RUN cat <<EOF >> /var/lib/postgresql/pg_hba.conf
 
 # Mv
-include_if_exists /var/lib/postgresql/pg_hba-extras.conf
+include_if_exists /var/lib/postgresql/pg-hba-extras.conf
 
 EOF
 
-RUN cat <<EOF >> /var/lib/postgresql/pg_hba-extras.conf
+RUN cat <<EOF >> /var/lib/postgresql/pg-hba-extras.conf
 # First boot: TRUST: for automation
 # Desired: connections using md5/passwords in all future automations
 
@@ -39,6 +47,9 @@ host    all  all  192.168.0.0/16   trust
 host    all  all  172.16.0.0/12    trust
 
 EOF
+
+# WAL archive destination
+RUN mkdir -p /mnt/archive && chown -R postgres:postgres /mnt/archive
 
 EXPOSE 5432
 
