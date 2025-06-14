@@ -18,7 +18,7 @@ A small docker based lab to test Postgres v17 replication.
 
 Initial diagram:
 
-[Postgres Replica Test](docs/pg-replica-test.1.png)
+![Postgres Replica Test](docs/pg-replica-test.1.png)
 
 
 ## Implementation
@@ -219,14 +219,13 @@ replica  1   70   75720  75684  0   18:07  ?    00:00:01  postgres: startup wait
 ### 1. Why Docker and not Vagrant/Virtubalbox?
 
 * Because of the challenge of provisioning via `Dockerfile` instead of using a `Vagrantfile`.
-* Because of less RAM/Disk resources that Docker uses less when compared to Virtualbox.
-* Because of how easier to is to share the solution via a container image versus a vbox file.
+* Because of how easier is to share the solution via a container image versus a vbox file.
 * Because of how easy is to create a volume shared between `'n'` containers.
 
 
 ### 2. Why using Postgres Log Shipping and not Streaming?
 
-WAL Log Shipping proved to be very simple to setup with minimal configuration, and no need of any network setup.
+WAL Log Shipping proved to be very simple to setup with minimal configuration, and no need of any specific network setup.
 
 At configuration level `postgresql.conf` of each server must have:
 
