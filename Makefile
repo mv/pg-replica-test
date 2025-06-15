@@ -96,13 +96,13 @@ db-primary-run: ## - Docker daemon: db-primary
 #		--ip 172.17.0.32 \
 
 .PHONY: db-primary-start
-db-primary-start: ## - Docker start: db-primary
+db-primary-start: ## - Docker start : db-primary
 	docker start $(_primary)
 	@echo
 	@docker ps -a | egrep --color -e "NAMES|$(_primary)"
 
 .PHONY: db-primary-stop
-db-primary-stop: ## - Docker stop: db-primary
+db-primary-stop: ## - Docker stop  : db-primary
 	docker stop $(_primary)
 	@echo
 	@docker ps -a | egrep -e "NAMES|$(_primary)"
@@ -126,7 +126,7 @@ db-primary-all: ## - Pg: create/run/setup
 	@make db-primary-setup
 
 .PHONY: db-primary-clean
-db-primary-clean: ## - Pg: remove img/ps/volume
+db-primary-clean: ## - Docke: remove img/ps/volume
 	docker stop $(_primary)
 	docker rm   $(_primary)
 	docker volume rm archive
@@ -135,7 +135,7 @@ db-primary-clean: ## - Pg: remove img/ps/volume
 ##
 ##
 .PHONY: replica-run
-replica-run: ## - Pg: create/run/setup
+replica-run: ## - Docker daemon: db-replica
 	docker create \
 		-p 5433:5432 \
 		-v .:/work -v archive:/mnt/archive \
@@ -147,13 +147,13 @@ replica-run: ## - Pg: create/run/setup
 
 
 .PHONY: replica-start
-replica-start: ## - Docker start: replica
+replica-start: ## - Docker start : replica
 	docker start $(_replica)
 	@echo
 	@docker ps -a | egrep --color -e "NAMES|$(_replica)"
 
 .PHONY: replica-stop
-replica-stop: ## - Docker stop: replica
+replica-stop: ## - Docker stop  : replica
 	docker stop $(_replica)
 	@echo
 	@docker ps -a | egrep -e "NAMES|$(_replica)"
@@ -171,24 +171,27 @@ replica-all: ## - Pg: cerate/run/setup
 	bin/check-replica-build.sh
 
 .PHONY: replica-clean
-replica-clean: ## - Pg: remove
+replica-clean: ## - Docker remove
 	docker stop $(_replica)
 	docker rm   $(_replica)
 
+##
+##
+##
 .PHONY: start-all
-start-all: ## - Docker: start primary + replica
+start-all: ## - Docker start: primary + replica
 	docker start $(_primary)
 	docker start $(_replica)
 #	docker ps -a
 
 .PHONY: stop-all
-stop-all: ## - Docker: stop primary + replica
+stop-all: ## - Docker stop : primary + replica
 	docker stop $(_primary)
 	docker stop $(_replica)
 #	docker ps -a
 
 .PHONY: run-all
-run-all: ## - Pg: create/run primary + replica
+run-all: ## - Docker: create/run
 	@make db-primary-all
 	@echo
 	@make replica-all
@@ -196,7 +199,7 @@ run-all: ## - Pg: create/run primary + replica
 #	docker ps -a
 
 .PHONY: clean-all
-clean-all: ## - Pg: destroy primary + replica + volume
+clean-all: ## - Docker: destroy primary + replica + volume
 	@make replica-clean    || true
 	@make db-primary-clean || true
 	@docker ps -a
@@ -218,7 +221,7 @@ disclaimer: ## via Docker compose: order of tasks DO matter.
 	@echo
 
 .PHONY: dc-up
-dc-up: ## - Docker compose up  : ensures initial schema setup
+dc-up: ## - Docker compose up  : CREATE: ensures initial schema setup
 #	make build-pg17
 	docker compose up primary -d
 	make db-primary-setup
@@ -241,13 +244,20 @@ dc-up: ## - Docker compose up  : ensures initial schema setup
 
 
 .PHONY: dc-down
-dc-down: ## - Docker compose down: ensures volume and WAL files are destroyed
+dc-down: ## - Docker compose down: DESTROY: ensures volume and WAL files are destroyed
 	docker compose down -v
 	@echo
 	@echo "== Down: all resources destroyed."
 	@echo
 
-
 .PHONY: dc-top
-dc-top: ## - Docker compose top: shortcut
+dc-top: ## - Docker compose top : db console output
 	@while true; do date ; docker compose top ; sleep 2; echo; done
+
+.PHONY: dc-start
+dc-start: ## - Docker compose start
+	docker compose start
+
+.PHONY: dc-stop
+dc-stop: ## - Docker compose stop
+	docker compose stop

@@ -234,7 +234,9 @@ replica  1   70   75720  75684  0   18:07  ?    00:00:01  postgres: startup wait
 
 ### 2. Why using Postgres Log Shipping and not Streaming?
 
-WAL Log Shipping proved to be very simple to setup with minimal configuration, and no need of any specific network setup.
+WAL Log Shipping proved to be very simple to setup with minimal configuration.
+
+Streaming configuration can be done in a future next step.
 
 At configuration level `postgresql.conf` of each server must have:
 
@@ -265,5 +267,20 @@ archive_timeout = 30
 At runtime level, using log shipping adds to a nice effect of realizing the steps taken by `checkpoint > archive > ship > restore`.
 
 The observed delay between servers is not a bug, but a feature that demonstrates how the replication mechanism is keeping the flow of data up-to-date.
+
+
+### 3. Why use a `Makefile`?
+
+Because it is a very useful helper to organize simple tasks or some specific workflows of tasks.
+
+For a development scenario of fast trial-and-error it is a tool I still keep using.
+
+To see all the current tasks inside `Makefile`:
+
+```
+make    # no targets
+```
+
+![make](docs/make.1.png)
 
 
