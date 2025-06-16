@@ -1,5 +1,5 @@
 ##
-## configs: streaming
+## configs: log-shipping
 ##
 services:
 
@@ -16,8 +16,6 @@ services:
     configs:
       - source: db-primary
         target: /var/lib/postgresql/pg-replication-primary.conf
-      - source: pg-hba-extras
-        target: /var/lib/postgresql/pg-hba-extras.conf
 
   replica:
     image: pg-17
@@ -45,11 +43,10 @@ configs:
   db-primary:
     file: cfg/pg-replication-primary.conf
   db-replica:
-    file: cfg/pg-replication-replica-streaming.conf
+    file: cfg/pg-replication-replica-log-shipping.conf
   standby-signal:
     file: /dev/null
-  pg-hba-extras:
-    file: cfg/pg-hba-extras.conf
+
 
 networks:
   db: {}

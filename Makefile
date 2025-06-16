@@ -232,7 +232,7 @@ deti-replica: ## - CLI: docker exec -ti
 ##
 
 .PHONY: setup-log-shipping
-setup-log-shipping: ## Setup: set 'log-shipping' cfg files
+setup-log-shipping: ## - Setup: set cfg files to 'log-shipping'
 	/bin/cp docker-compose-log-shipping.yaml  docker-compose.yaml
 	/bin/cp bin/setup-primary-log-shipping.sh bin/setup-db-primary.sh
 	/bin/cp bin/check-replica-log-shipping.sh bin/check-db-replica.sh
@@ -242,7 +242,7 @@ setup-log-shipping: ## Setup: set 'log-shipping' cfg files
 	@echo
 
 .PHONY: setup-streaming
-setup-streaming: ## Setup: set 'streaming' cfg files
+setup-streaming: ## - Setup: set cfg files to 'streaming'
 	/bin/cp docker-compose-streaming.yaml  docker-compose.yaml
 	/bin/cp bin/setup-primary-streaming.sh bin/setup-db-primary.sh
 	/bin/cp bin/check-replica-streaming.sh bin/check-db-replica.sh
