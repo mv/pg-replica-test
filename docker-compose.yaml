@@ -1,0 +1,55 @@
+##
+## configs: streaming
+##
+services:
+
+  primary:
+    image: pg-17
+    hostname: db-primary
+    ports:
+      - "5432:5432"
+    networks:
+      - db
+    volumes:
+      - .:/work
+      - db-archive:/mnt/archive
+    configs:
+      - source: db-primary
+        target: /var/lib/postgresql/pg-replication-primary.conf
+      - source: pg-hba-extras
+        target: /var/lib/postgresql/pg-hba-extras.conf
+
+  replica:
+    image: pg-17
+    hostname: db-replica
+    ports:
+      - "5433:5432"
+    networks:
+      - db
+    volumes:
+      - .:/work
+      - db-archive:/mnt/archive
+    configs:
+      - source: db-replica
+        target: /var/lib/postgresql/pg-replication-replica.conf
+      - source: standby-signal
+        target: /var/lib/postgresql/standby.signal
+    depends_on:
+      - primary
+
+volumes:
+  db-archive:
+    driver: local
+
+configs:
+  db-primary:
+    file: cfg/pg-replication-primary.conf
+  db-replica:
+    file: cfg/pg-replication-replica-streaming.conf
+  standby-signal:
+    file: /dev/null
+  pg-hba-extras:
+    file: cfg/pg-hba-extras.conf
+
+networks:
+  db: {}

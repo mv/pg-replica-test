@@ -9,8 +9,8 @@ FROM alpine:3.22
 
 # alpine env
 RUN  apk add bash shadow gosu vim
-COPY docker/etc.bash-extra.sh  /etc/bash/bash-extra.sh
-COPY docker/etc.vimrc.local    /etc/vim/vimrc.local
+COPY cfg/etc.bash-extra.sh  /etc/bash/bash-extra.sh
+COPY cfg/etc.vimrc.local    /etc/vim/vimrc.local
 
 # Postgres 17
 ENV PGDATA="/var/lib/postgresql"
@@ -54,7 +54,6 @@ RUN chown -R postgres:postgres /var/lib/postgresql/*.conf
 RUN mkdir -p /mnt/archive && chown -R postgres:postgres /mnt/archive
 
 EXPOSE 5432
-
 
 ENTRYPOINT [ "/usr/bin/gosu","postgres","postgres"]
 
