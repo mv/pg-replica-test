@@ -205,9 +205,24 @@ clean-all: ## - Docker: destroy primary + replica + volume
 	@docker ps -a
 
 
+################################################################################
+##@ Others
+
 .PHONY: force-log-switch
 force-log-switch: ## - Pg
 	psql -U postgres -p 5432 -c 'SELECT pg_switch_wal();'
+
+.PHONY: net-listen
+net-listen: ## - Shell: netstat -anl
+	netstat -anl | grep LISTEN | grep tcp4 | grep 543[2345] | column -t
+
+.PHONY: deti-primary
+deti-primary: ## - CLI: docker exec -ti
+	docker exec -ti --user postgres pg-primary-1 /bin/bash
+
+.PHONY: deti-replica
+deti-replica: ## - CLI: docker exec -ti
+	docker exec -ti --user postgres pg-replica-1 /bin/bash
 
 
 ################################################################################
@@ -261,3 +276,49 @@ dc-start: ## - Docker compose start
 .PHONY: dc-stop
 dc-stop: ## - Docker compose stop
 	docker compose stop
+
+
+
+################################################################################
+##@ Docker compose: streaming
+
+##
+.PHONY: dcs-up
+dcs-up: ## - Docker compose up  : CREATE: ensures initial schema setup
+#	make build-pg17
+	docker compose -f docker-compose-streaming.yml up -d
+
+	make db-primary-setup
+	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/user.replication.sql
+
+	@echo
+	@echo "=="
+	@echo "== UP: setup done"
+	@echo "=="
+	@echo
+
+
+.PHONY: dcs-down
+dcs-down: ## - Docker compose down: DESTROY: ensures volume and WAL files are destroyed
+	docker compose -f docker-compose-streaming.yml down -v
+	@echo
+	@echo "== Down: all resources destroyed."
+	@echo
+
+.PHONY: dcs-top
+dcs-top: ## - Docker compose top : db console output
+	@while true; do date ; docker compose -f docker-compose-streaming.yml top ; sleep 2; echo; done
+
+.PHONY: dcs-start
+dcs-start: ## - Docker compose start
+	docker compose -f docker-compose-streaming.yml start
+
+.PHONY: dcs-stop
+dcs-stop: ## - Docker compose stop
+	docker compose -f docker-compose-streaming.yml stop
+
+.PHONY: dcs-logs
+dcs-logs: ## - Docker compose logs
+	docker compose -f docker-compose-streaming.yml logs -f
+
+
