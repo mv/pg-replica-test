@@ -223,23 +223,32 @@ replica  1   70   75720  75684  0   18:07  ?    00:00:01  postgres: startup wait
 ```
 
 
-# FAQ
+## Alternatives: Log shipping vs Streaming
 
-### 1. Why Docker and not Vagrant/Virtubalbox?
+The initial implementation uses WAL Log Shipping of files to replicate data.
+It is possible to compare it with WAL Streaming using the same Architecture defined in this lab.
 
-* Because of the challenge of provisioning via `Dockerfile` instead of using a `Vagrantfile`.
-* Because of how easier is to share the solution via a container image versus a vbox file.
-* Because of how easy is to create a volume shared between `'n'` containers.
+To rebuild the solution to use replication via Streaming:
+```
+make dc-down                  # cleanup, just in case
+make setup-streaming          # adjust config files
+make dc-up                    # rebuild
+bin/insert-random-orders.sh   # test again....
+```
 
+To make the solution back to replication using Log Shipping:
+```
+make dc-down                  # cleanup, just in case
+make setup-log-shipping       # adjust config files
+make dc-up                    # rebuild
+bin/insert-random-orders.sh   # resume testing...
+```
 
-### 2. Why using Postgres Log Shipping and not Streaming?
+A summary of config files between `primary` and `replica` for each solution:
 
-WAL Log Shipping proved to be very simple to setup with minimal configuration.
+### Setup: Log Shipping
 
-Streaming configuration can be done in a future next step.
-
-At configuration level `postgresql.conf` of each server must have:
-
+In file `postgresql.conf`:
 ```
 # Server: db-primary
 listen_addresses = '*'
@@ -249,7 +258,7 @@ archive_command = 'test ! -f /mnt/archive/%f  &&  /bin/cp %p /mnt/archive/%f'
 
 # Test in Docker
 checkpoint_timeout = 30s # range 30s-1d
-archive_timeout = 2      # force a WAL file switch after this number of seconds; 0 disables
+archive_timeout = 2      # force a WAL file switch after this number of seconds
 ```
 ```
 # Server: db-replicia
@@ -264,16 +273,73 @@ archive_cleanup_command = 'pg_archivecleanup /mnt/archive %r'
 archive_timeout = 30
 ```
 
-At runtime level, using log shipping adds to a nice effect of realizing the steps taken by `checkpoint > archive > ship > restore`.
 
-The observed delay between servers is not a bug, but a feature that demonstrates how the replication mechanism is keeping the flow of data up-to-date.
+### Setup: Streaming
+
+In file `postgresql.conf`:
+```
+# Server: db-primary
+listen_addresses = '*'
+wal_level = replica
+archive_mode = on
+archive_command = 'test ! -f /mnt/archive/%f  &&  /bin/cp %p /mnt/archive/%f'
+
+# Test in Docker
+checkpoint_timeout = 30s # range 30s-1d
+archive_timeout = 2      # force a WAL file switch after this number of seconds
+```
+```
+# Server: db-replicia
+listen_addresses = '*'
+wal_level = replica
+archive_mode = on
+hot_standby = on
+primary_conninfo = 'host=db-primary port=5432 user=replication password=pass'
+restore_command = 'cp /mnt/archive/%f %p'
+archive_cleanup_command = 'pg_archivecleanup /mnt/archive %r'
+
+# Test in Docker
+archive_timeout = 30
+```
+
+In file `pg_hba.conf` (`primary` server only)
+```
+# type  db   user        src_addr        method
+host    all  replication 192.168.0.0/16  md5
+host    all  replication 172.16.0.0/12   md5
+```
+
+In the setup of `primary`:
+```
+CREATE USER replication PASSWORD 'pass' REPLICATION;
+```
+
+
+# FAQ
+
+### 1. Why Docker and not Vagrant/Virtubalbox?
+
+* Because of the challenge of provisioning via `Dockerfile` instead of using a `Vagrantfile`.
+* Because of how easier is to share the solution via a container image versus a vbox file.
+* Because of how easy is to create a volume shared between `'n'` containers.
+
+
+### 2. Why Log Shipping is the default solution?
+
+WAL Log Shipping proved to be very simple to setup with minimal configuration.
+
+Streaming configuration is not difficult per se, but needs a network setup while log shipping needs only a common storage between servers.
+
+Nonetheless, using log shipping adds to a nice effect of realizing the steps taken by `checkpoint > archive > ship > restore`. The observed delay between servers is not a bug, but a feature that demonstrates how the replication mechanism is keeping the flow of data up-to-date. In another words, it is a more visual observation of the dependency of log switching at the `primary` server.
+
+By the same point, it is possible also to realize how faster is the Streaming of logs and its effect on keeping the `replica` server closer to the same dataset of the `primary`.
 
 
 ### 3. Why use a `Makefile`?
 
-Because it is a very useful helper to organize simple tasks or some specific workflows of tasks.
+Because it is a very useful helper to organize simple tasks or some specific workflows of actions.
 
-For a development scenario of fast trial-and-error it is a tool I still keep using.
+For this development scenario, a simple `make` tasks adds to the solution by managing config files between the 2 implementations in a easier way than using only `docker-compose.yaml` file.
 
 To see all the current tasks inside `Makefile`:
 
@@ -281,6 +347,7 @@ To see all the current tasks inside `Makefile`:
 make    # no targets
 ```
 
-![make](docs/make.1.png)
+Output:
+![make](docs/make.2.png)
 
 
