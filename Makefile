@@ -64,10 +64,9 @@ _replica:=db-replica
 
 .PHONY: build-pg17
 build-pg17: ## - Docker build: container image: $(_cimg):$(_tag)
-#	export _img=pg-17  ;\
-#	export _tag=latest ;\
+#	docker build -f docker/Dockerfile.$(_cimg) -t $(_cimg):$(_base) . && \
 
-	docker build -f docker/Dockerfile.$(_cimg) -t $(_cimg):$(_base) . && \
+	docker build -t $(_cimg):$(_base) . && \
 	docker images | egrep -B5 -A5 --color "$(_cimg) *$(_base)"
 
 
@@ -77,7 +76,7 @@ run-pg17: ## - Docker run /bin/sh
 
 
 ################################################################################
-##@ Via Docker: Postgres setup/test
+##@ Development: Docker/Postgres - setup/test
 
 ##
 ##
@@ -110,8 +109,9 @@ db-primary-stop: ## - Docker stop  : db-primary
 
 .PHONY: db-primary-setup
 db-primary-setup: ## - Pg: create schema
-	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/ddl/schema.tst.sql
-	psql -U tst      -h 127.0.0.1 -p 5432 postgres < sql/ddl/orders.tab.sql
+#	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/ddl/schema.tst.sql
+#	psql -U tst      -h 127.0.0.1 -p 5432 postgres < sql/ddl/orders.tab.sql
+	bash bin/setup-db-primary.sh
 	@make db-primary-check
 
 
@@ -226,17 +226,33 @@ deti-replica: ## - CLI: docker exec -ti
 
 
 ################################################################################
-##@ Via Docker compose: up/down
+##@ Runtime: Via Docker compose
 
 ##
 ##
 
-.PHONY: disclaimer
-disclaimer: ## via Docker compose: order of tasks DO matter.
+.PHONY: setup-log-shipping
+setup-log-shipping: ## Setup: set 'log-shipping' cfg files
+	/bin/cp docker-compose-log-shipping.yaml  docker-compose.yaml
+	/bin/cp bin/setup-primary-log-shipping.sh bin/setup-db-primary.sh
+	/bin/cp bin/check-replica-log-shipping.sh bin/check-db-replica.sh
+
+	@echo
+	@echo "== Setup: log shipping"
+	@echo
+
+.PHONY: setup-streaming
+setup-streaming: ## Setup: set 'streaming' cfg files
+	/bin/cp docker-compose-streaming.yaml  docker-compose.yaml
+	/bin/cp bin/setup-primary-streaming.sh bin/setup-db-primary.sh
+	/bin/cp bin/check-replica-streaming.sh bin/check-db-replica.sh
+
+	@echo
+	@echo "== Setup: streaming"
 	@echo
 
 .PHONY: dc-up
-dc-up: ## - Docker compose up  : CREATE: ensures initial schema setup
+dc-up: ## - Docker compose up  : CREATE : ensures initial schema setup
 #	make build-pg17
 	docker compose up primary -d
 	make db-primary-setup
@@ -246,7 +262,7 @@ dc-up: ## - Docker compose up  : CREATE: ensures initial schema setup
 	@echo
 
 	docker compose up replica -d
-	bin/check-replica-build.sh
+	bin/check-db-replica.sh
 	@echo "=="
 	@echo "== UP: Replica: setup done"
 	@echo "=="
@@ -259,7 +275,7 @@ dc-up: ## - Docker compose up  : CREATE: ensures initial schema setup
 
 
 .PHONY: dc-down
-dc-down: ## - Docker compose down: DESTROY: ensures volume and WAL files are destroyed
+dc-down: ## - Docker compose down: DESTROY: removes volume/WAL files
 	docker compose down -v
 	@echo
 	@echo "== Down: all resources destroyed."
@@ -276,49 +292,4 @@ dc-start: ## - Docker compose start
 .PHONY: dc-stop
 dc-stop: ## - Docker compose stop
 	docker compose stop
-
-
-
-################################################################################
-##@ Docker compose: streaming
-
-##
-.PHONY: dcs-up
-dcs-up: ## - Docker compose up  : CREATE: ensures initial schema setup
-#	make build-pg17
-	docker compose -f docker-compose-streaming.yml up -d
-
-	make db-primary-setup
-	psql -U postgres -h 127.0.0.1 -p 5432 postgres < sql/user.replication.sql
-
-	@echo
-	@echo "=="
-	@echo "== UP: setup done"
-	@echo "=="
-	@echo
-
-
-.PHONY: dcs-down
-dcs-down: ## - Docker compose down: DESTROY: ensures volume and WAL files are destroyed
-	docker compose -f docker-compose-streaming.yml down -v
-	@echo
-	@echo "== Down: all resources destroyed."
-	@echo
-
-.PHONY: dcs-top
-dcs-top: ## - Docker compose top : db console output
-	@while true; do date ; docker compose -f docker-compose-streaming.yml top ; sleep 2; echo; done
-
-.PHONY: dcs-start
-dcs-start: ## - Docker compose start
-	docker compose -f docker-compose-streaming.yml start
-
-.PHONY: dcs-stop
-dcs-stop: ## - Docker compose stop
-	docker compose -f docker-compose-streaming.yml stop
-
-.PHONY: dcs-logs
-dcs-logs: ## - Docker compose logs
-	docker compose -f docker-compose-streaming.yml logs -f
-
 

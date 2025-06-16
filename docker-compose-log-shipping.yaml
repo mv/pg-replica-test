@@ -1,3 +1,6 @@
+##
+## configs: log-shipping
+##
 services:
 
   primary:
@@ -13,8 +16,6 @@ services:
     configs:
       - source: db-primary
         target: /var/lib/postgresql/pg-replication-primary.conf
-      - source: pg-hba-extras
-        target: /var/lib/postgresql/pg-hba-extras.conf
 
   replica:
     image: pg-17
@@ -27,9 +28,7 @@ services:
       - .:/work
       - db-archive:/mnt/archive
     configs:
-#     - source: db-replica
-#       target: /var/lib/postgresql/pg-replication-replica.conf
-      - source: pg-streaming-replica
+      - source: db-replica
         target: /var/lib/postgresql/pg-replication-replica.conf
       - source: standby-signal
         target: /var/lib/postgresql/standby.signal
@@ -41,19 +40,13 @@ volumes:
     driver: local
 
 configs:
-  # log shipping
   db-primary:
-    file: ./docker/pg-replication-primary.conf
+    file: cfg/pg-replication-primary.conf
   db-replica:
-    file: ./docker/pg-replication-replica.conf
+    file: cfg/pg-replication-replica-log-shipping.conf
   standby-signal:
     file: /dev/null
 
-  # streaming
-  pg-streaming-replica:
-    file: ./docker/pg-streaming-replica.conf
-  pg-hba-extras:
-    file: ./docker/pg-hba-extras.conf
 
 networks:
   db: {}
