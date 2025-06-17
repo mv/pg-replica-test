@@ -251,6 +251,11 @@ setup-streaming: ## - Setup: set cfg files to 'streaming'
 	@echo "== Setup: streaming"
 	@echo
 
+.PHONY: setup-show
+setup-show: ## - Setup: show current configuration
+	@head -3 docker-compose.yaml
+
+
 .PHONY: dc-up
 dc-up: ## - Docker compose up  : CREATE : ensures initial schema setup
 #	make build-pg17
