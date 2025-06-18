@@ -10,6 +10,10 @@ _python_version := $(shell python -V)
 
 .DEFAULT_GOAL:=help
 
+# VSCode: Build target
+all: build-pg17 dc-up
+
+
 ################################################################################
 ##@ Help
 .PHONY: help
